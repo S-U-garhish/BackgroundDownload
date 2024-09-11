@@ -242,6 +242,10 @@ namespace Unity.Networking
 
         public override void Dispose()
         {
+            _CancellationTokenSource?.Cancel();
+            _CancellationTokenSource?.Dispose();
+            _CancellationTokenSource = null;
+            
             RemoveDownload();
             base.Dispose();
         }
