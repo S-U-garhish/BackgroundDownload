@@ -10,14 +10,18 @@ using UnityEngine;
 
 namespace Unity.Networking
 {
-
     class BackgroundDownloadAndroid : BackgroundDownload
     {
         private const string TEMP_FILE_SUFFIX = ".part";
         static AndroidJavaClass _playerClass;
         static AndroidJavaClass _backgroundDownloadClass;
         private CancellationTokenSource _CancellationTokenSource;
+        private AndroidJavaObject _download;
+        private long _id = 0;
+        private string _tempFilePath;
+        
         static AndroidJavaObject _currentActivity;
+        static Callback _finishedCallback;
         
         class Callback : AndroidJavaProxy
         {
@@ -34,13 +38,6 @@ namespace Unity.Networking
                 }
             }
         }
-
-        static Callback _finishedCallback;
-
-        AndroidJavaObject _download;
-        long _id = 0;
-        string _tempFilePath;
-        
         
         static void SetupBackendStatics()
         {
@@ -64,51 +61,9 @@ namespace Unity.Networking
         internal BackgroundDownloadAndroid(BackgroundDownloadConfig config)
             : base(config)
         {
-            _CancellationTokenSource = new CancellationTokenSource();
             SetupBackendStatics();
+            _CancellationTokenSource = new CancellationTokenSource();
             StartDownloadAsync(_CancellationTokenSource.Token);
-            
-            
-           /*
-            string filePath = Path.Combine(Application.persistentDataPath, config.filePath);
-            _tempFilePath = filePath + TEMP_FILE_SUFFIX;
-            if (File.Exists(filePath))
-                File.Delete(filePath);
-            if (File.Exists(_tempFilePath))
-                File.Delete(_tempFilePath);
-            else
-            {
-                var dir = Path.GetDirectoryName(filePath);
-                if (!Directory.Exists(dir))
-                    Directory.CreateDirectory(dir);
-            }
-            string fileUri = "file://" + _tempFilePath;
-            bool allowMetered = false;
-            bool allowRoaming = false;
-            switch (_config.policy)
-            {
-                case BackgroundDownloadPolicy.AllowMetered:
-                    allowMetered = true;
-                    break;
-                case BackgroundDownloadPolicy.AlwaysAllow:
-                    allowMetered = true;
-                    allowRoaming = true;
-                    break;
-                default:
-                    break;
-            }
-            _download = _backgroundDownloadClass.CallStatic<AndroidJavaObject>("create", config.url.AbsoluteUri, fileUri);
-
-            _download.Call("setAllowMetered", allowMetered);
-            _download.Call("setAllowRoaming", allowRoaming);
-            if (config.requestHeaders != null)
-                foreach (var header in config.requestHeaders)
-                    if (header.Value != null)
-                        foreach (var val in header.Value)
-                            _download.Call("addRequestHeader", header.Key, val);
-            var activity = _playerClass.GetStatic<AndroidJavaObject>("currentActivity");
-            _id = _download.Call<long>("start", activity);
-            */
         }
 
         private void StartDownloadAsync(CancellationToken cancellationToken)
@@ -118,12 +73,12 @@ namespace Unity.Networking
             Task.Run(async () =>
             {
                 AndroidJNI.AttachCurrentThread();
-                await RunDownload(filePath);
+                await RunDownloadTask(filePath);
                 AndroidJNI.DetachCurrentThread();
             }, cancellationToken);  
         }
         
-        private Task RunDownload(string filePath)
+        private Task RunDownloadTask(string filePath)
         {
             _tempFilePath = filePath + TEMP_FILE_SUFFIX;
             
@@ -169,6 +124,7 @@ namespace Unity.Networking
                             _download.Call("addRequestHeader", header.Key, val);
 
             _id = _download.Call<long>("start", _currentActivity);
+            
             return Task.CompletedTask;
         }
         
@@ -259,7 +215,12 @@ namespace Unity.Networking
 
         void RemoveDownload()
         {
-            _download.Call("remove");
+            Task.Run(() =>
+            {
+                AndroidJNI.AttachCurrentThread();
+                _download.Call("remove");
+                AndroidJNI.DetachCurrentThread();
+            });  
         }
 
         public override bool keepWaiting { get { return _status == BackgroundDownloadStatus.Downloading; } }
