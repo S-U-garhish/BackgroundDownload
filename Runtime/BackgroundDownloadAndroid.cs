@@ -188,23 +188,16 @@ namespace Unity.Networking
 
         void CheckFinished()
         {
-            if (_status == BackgroundDownloadStatus.Downloading)
+            // Running "checkFinished" call and file operations on thread pool as it is expensive operation 
+            Task.Run(() =>
             {
-                int status = _download.Call<int>("checkFinished");
+                AndroidJNI.AttachCurrentThread();
                 
-                if (status < 0)
+                if (_status == BackgroundDownloadStatus.Downloading)
                 {
-                    _status = BackgroundDownloadStatus.Failed;
-                    _error = GetError();
-                    return;
-                }
-                
-                if (status == 1)
-                {
-                    // Running following file operations on thread pool as it is expensive operation
-                    Task.Run(() =>
+                    int status = _download.Call<int>("checkFinished");
+                    if (status == 1)
                     {
-                        AndroidJNI.AttachCurrentThread();
                         if (_tempFilePath.EndsWith(TEMP_FILE_SUFFIX))
                         {
                             string filePath = _tempFilePath.Substring(0, _tempFilePath.Length - TEMP_FILE_SUFFIX.Length);
@@ -215,12 +208,18 @@ namespace Unity.Networking
                                 File.Move(_tempFilePath, filePath);
                             }
                         }
-                        AndroidJNI.DetachCurrentThread();
-                        
+
                         _status = BackgroundDownloadStatus.Done;
-                    });
-                }
-            } 
+                    }
+                    else if (status < 0)
+                    {
+                        _status = BackgroundDownloadStatus.Failed;
+                        _error = GetError();
+                    }
+                } 
+                
+                AndroidJNI.DetachCurrentThread();
+            });
         }
 
         void RemoveDownload()
