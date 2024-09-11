@@ -70,6 +70,7 @@ namespace Unity.Networking
         {
             string filePath = Path.Combine(Application.persistentDataPath, config.filePath);
             
+            // Running RunDownloadTask on thread pool as it is expensive operation 
             Task.Run(async () =>
             {
                 AndroidJNI.AttachCurrentThread();
@@ -190,31 +191,41 @@ namespace Unity.Networking
             if (_status == BackgroundDownloadStatus.Downloading)
             {
                 int status = _download.Call<int>("checkFinished");
-                if (status == 1)
-                {
-                    if (_tempFilePath.EndsWith(TEMP_FILE_SUFFIX))
-                    {
-                        string filePath = _tempFilePath.Substring(0, _tempFilePath.Length - TEMP_FILE_SUFFIX.Length);
-                        if (File.Exists(_tempFilePath))
-                        {
-                            if (File.Exists(filePath))
-                                File.Delete(filePath);
-                            File.Move(_tempFilePath, filePath);
-                        }
-                    }
-
-                    _status = BackgroundDownloadStatus.Done;
-                }
-                else if (status < 0)
+                
+                if (status < 0)
                 {
                     _status = BackgroundDownloadStatus.Failed;
                     _error = GetError();
+                    return;
                 }
-            }
+                
+                if (status == 1)
+                {
+                    // Running following file operations on thread pool as it is expensive operation
+                    Task.Run(() =>
+                    {
+                        AndroidJNI.AttachCurrentThread();
+                        if (_tempFilePath.EndsWith(TEMP_FILE_SUFFIX))
+                        {
+                            string filePath = _tempFilePath.Substring(0, _tempFilePath.Length - TEMP_FILE_SUFFIX.Length);
+                            if (File.Exists(_tempFilePath))
+                            {
+                                if (File.Exists(filePath))
+                                    File.Delete(filePath);
+                                File.Move(_tempFilePath, filePath);
+                            }
+                        }
+                        AndroidJNI.DetachCurrentThread();
+                        
+                        _status = BackgroundDownloadStatus.Done;
+                    });
+                }
+            } 
         }
 
         void RemoveDownload()
         {
+            // Calling "remove" on thread pool which is expensive operation
             Task.Run(() =>
             {
                 AndroidJNI.AttachCurrentThread();
@@ -272,7 +283,6 @@ namespace Unity.Networking
                 File.Delete(file);
         }
     }
-
 }
 
 #endif
