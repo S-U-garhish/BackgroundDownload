@@ -10,6 +10,13 @@ using UnityEngine;
 
 namespace Unity.Networking
 {
+    public class AsyncLock
+    {
+        private readonly SemaphoreSlim _SemaphoreSlim = new(1,1);
+        public Task WaitAsync() => _SemaphoreSlim.WaitAsync();
+        public void Release() => _SemaphoreSlim.Release();
+    }
+    
     class BackgroundDownloadAndroid : BackgroundDownload
     {
         private const string TEMP_FILE_SUFFIX = ".part";
@@ -23,6 +30,7 @@ namespace Unity.Networking
         
         static AndroidJavaObject _currentActivity;
         static Callback _finishedCallback;
+        static AsyncLock _asyncLock = new ();
         
         class Callback : AndroidJavaProxy
         {
@@ -66,18 +74,37 @@ namespace Unity.Networking
             _CancellationTokenSource = new CancellationTokenSource();
             StartDownloadAsync(_CancellationTokenSource.Token);
         }
-
-        private void StartDownloadAsync(CancellationToken cancellationToken)
+        
+        BackgroundDownloadAndroid(long id, AndroidJavaObject download)
         {
-            string filePath = Path.Combine(Application.persistentDataPath, config.filePath);
+            _id = id;
+            _download = download;
+            _config.url = QueryDownloadUri();
+            _config.filePath = QueryDestinationPath(out _tempFilePath);
             
-            // Running RunDownloadTask on thread pool as it is expensive operation 
-            Task.Run(async () =>
+            _started = true;
+            CheckFinished();
+        }
+        
+        private async void StartDownloadAsync(CancellationToken cancellationToken)
+        {
+            await _asyncLock.WaitAsync();
+            try
             {
-                AndroidJNI.AttachCurrentThread();
-                await RunDownloadTask(filePath);
-                AndroidJNI.DetachCurrentThread();
-            }, cancellationToken);  
+                string filePath = Path.Combine(Application.persistentDataPath, config.filePath);
+                
+                // Running RunDownloadTask on thread pool as it is expensive operation 
+                await Task.Run(async () =>
+                {
+                    AndroidJNI.AttachCurrentThread();
+                    await RunDownloadTask(filePath);
+                    AndroidJNI.DetachCurrentThread();
+                }, cancellationToken); 
+            }
+            finally
+            {
+                _asyncLock.Release();
+            }
         }
         
         private Task RunDownloadTask(string filePath)
@@ -130,17 +157,7 @@ namespace Unity.Networking
             return Task.CompletedTask;
         }
         
-        BackgroundDownloadAndroid(long id, AndroidJavaObject download)
-        {
-            _id = id;
-            _download = download;
-            _config.url = QueryDownloadUri();
-            _config.filePath = QueryDestinationPath(out _tempFilePath);
-            
-            _started = true;
-            CheckFinished();
-        }
-
+      
         static BackgroundDownloadAndroid Recreate(long id)
         {
             try
@@ -193,10 +210,18 @@ namespace Unity.Networking
 
         void CheckFinished()
         {
-            if (_status == BackgroundDownloadStatus.Downloading && _started)
+            if (_status == BackgroundDownloadStatus.Downloading)
             {
-                // Running "checkFinished" call and file operations on thread pool as it is expensive operation 
-                Task.Run(() =>
+                CheckFinishedAsync();
+            }
+        }
+
+        async void CheckFinishedAsync()
+        {
+            await _asyncLock.WaitAsync();
+            try
+            {
+                await Task.Run(() =>
                 {
                     AndroidJNI.AttachCurrentThread();
                     int finishStatus = _download.Call<int>("checkFinished");
@@ -224,19 +249,36 @@ namespace Unity.Networking
                     AndroidJNI.DetachCurrentThread();
                 });
             }
+            finally
+            {
+                _asyncLock.Release();  
+            }
         }
-
+        
         void RemoveDownload()
         {
-            // Calling "remove" on thread pool which is expensive operation
-            Task.Run(() =>
-            {
-                AndroidJNI.AttachCurrentThread();
-                _download.Call("remove");
-                AndroidJNI.DetachCurrentThread();
-            });  
+            RemoveDownloadAsync();
         }
-
+        
+        async void RemoveDownloadAsync()
+        {
+            await _asyncLock.WaitAsync();
+            try
+            {
+                // Calling "remove" on thread pool which is expensive operation
+                await Task.Run(() =>
+                {
+                    AndroidJNI.AttachCurrentThread();
+                    _download.Call("remove");
+                    AndroidJNI.DetachCurrentThread();
+                });   
+            }
+            finally
+            {
+                _asyncLock.Release();  
+            }
+        }
+        
         public override bool keepWaiting { get { return _status == BackgroundDownloadStatus.Downloading; } }
 
         protected override float GetProgress()
