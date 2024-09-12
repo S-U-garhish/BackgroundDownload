@@ -19,6 +19,7 @@ namespace Unity.Networking
         private AndroidJavaObject _download;
         private long _id = 0;
         private string _tempFilePath;
+        private bool _started;
         
         static AndroidJavaObject _currentActivity;
         static Callback _finishedCallback;
@@ -125,7 +126,7 @@ namespace Unity.Networking
                             _download.Call("addRequestHeader", header.Key, val);
 
             _id = _download.Call<long>("start", _currentActivity);
-            
+            _started = true;
             return Task.CompletedTask;
         }
         
@@ -135,6 +136,8 @@ namespace Unity.Networking
             _download = download;
             _config.url = QueryDownloadUri();
             _config.filePath = QueryDestinationPath(out _tempFilePath);
+            
+            _started = true;
             CheckFinished();
         }
 
@@ -143,8 +146,10 @@ namespace Unity.Networking
             try
             {
                 SetupBackendStatics();
-                var activity = _playerClass.GetStatic<AndroidJavaObject>("currentActivity");
-                var download = _backgroundDownloadClass.CallStatic<AndroidJavaObject>("recreate", activity, id);
+              
+                var download = _backgroundDownloadClass.CallStatic<AndroidJavaObject>("recreate", 
+                    _currentActivity, id);
+                
                 if (download != null)
                     return new BackgroundDownloadAndroid(id, download);
             }
@@ -188,19 +193,19 @@ namespace Unity.Networking
 
         void CheckFinished()
         {
-            // Running "checkFinished" call and file operations on thread pool as it is expensive operation 
-            Task.Run(() =>
+            if (_status == BackgroundDownloadStatus.Downloading && _started)
             {
-                AndroidJNI.AttachCurrentThread();
-                
-                if (_status == BackgroundDownloadStatus.Downloading)
+                // Running "checkFinished" call and file operations on thread pool as it is expensive operation 
+                Task.Run(() =>
                 {
-                    int status = _download.Call<int>("checkFinished");
-                    if (status == 1)
+                    AndroidJNI.AttachCurrentThread();
+                    int finishStatus = _download.Call<int>("checkFinished");
+                    if (finishStatus == 1)
                     {
                         if (_tempFilePath.EndsWith(TEMP_FILE_SUFFIX))
                         {
-                            string filePath = _tempFilePath.Substring(0, _tempFilePath.Length - TEMP_FILE_SUFFIX.Length);
+                            string filePath =
+                                _tempFilePath.Substring(0, _tempFilePath.Length - TEMP_FILE_SUFFIX.Length);
                             if (File.Exists(_tempFilePath))
                             {
                                 if (File.Exists(filePath))
@@ -211,15 +216,14 @@ namespace Unity.Networking
 
                         _status = BackgroundDownloadStatus.Done;
                     }
-                    else if (status < 0)
+                    else if (finishStatus < 0)
                     {
                         _status = BackgroundDownloadStatus.Failed;
                         _error = GetError();
                     }
-                } 
-                
-                AndroidJNI.DetachCurrentThread();
-            });
+                    AndroidJNI.DetachCurrentThread();
+                });
+            }
         }
 
         void RemoveDownload()
@@ -287,5 +291,4 @@ namespace Unity.Networking
         }
     }
 }
-
 #endif
