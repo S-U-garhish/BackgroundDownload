@@ -29,7 +29,7 @@ namespace Unity.Networking
         
         static AndroidJavaObject _currentActivity;
         static Callback _finishedCallback;
-        static AsyncLock _asyncLock = new ();
+        static readonly AsyncLock _asyncLock = new ();
         
         class Callback : AndroidJavaProxy
         {
