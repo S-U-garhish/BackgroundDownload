@@ -24,9 +24,8 @@ namespace Unity.Networking
         static AndroidJavaClass _backgroundDownloadClass;
         private CancellationTokenSource _CancellationTokenSource;
         private AndroidJavaObject _download;
-        private long _id = 0;
+        private long _id = int.MinValue;
         private string _tempFilePath;
-        private bool _started;
         
         static AndroidJavaObject _currentActivity;
         static Callback _finishedCallback;
@@ -81,8 +80,6 @@ namespace Unity.Networking
             _download = download;
             _config.url = QueryDownloadUri();
             _config.filePath = QueryDestinationPath(out _tempFilePath);
-            
-            _started = true;
             CheckFinished();
         }
         
@@ -153,7 +150,6 @@ namespace Unity.Networking
                             _download.Call("addRequestHeader", header.Key, val);
 
             _id = _download.Call<long>("start", _currentActivity);
-            _started = true;
             return Task.CompletedTask;
         }
         
@@ -210,7 +206,7 @@ namespace Unity.Networking
 
         void CheckFinished()
         {
-            if (_status == BackgroundDownloadStatus.Downloading)
+            if (_status == BackgroundDownloadStatus.Downloading && _id !=  int.MinValue)
             {
                 CheckFinishedAsync();
             }
