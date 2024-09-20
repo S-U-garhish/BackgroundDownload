@@ -153,7 +153,6 @@ namespace Unity.Networking
             return Task.CompletedTask;
         }
         
-      
         static BackgroundDownloadAndroid Recreate(long id)
         {
             try
