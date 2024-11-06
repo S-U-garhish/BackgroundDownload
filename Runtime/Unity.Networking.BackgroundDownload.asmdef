@@ -5,10 +5,11 @@
         "UniTask"
     ],
     "includePlatforms": [
-        "Android",
+       "Android",
         "Editor",
         "iOS",
         "WSA",
+        "VisionOS",
         "WindowsStandalone32",
         "WindowsStandalone64"
     ],
