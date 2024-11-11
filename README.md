@@ -1,7 +1,8 @@
 # About com.unity.backgrounddownload
 
 ## Note: Unsupported feature
-This package is not an officially supported feature, and is provided "as is".
+This package is not an officially supported feature, and is provided "as is".  
+And this fork is totally WIP.
 
 ## Feature scope
 Use Background Download to download large files in the background on mobile platforms. It lets you fetch files that aren't required immediately while caring less about application lifecycle. Downloads will continue even if your application goes into background or the Operating System closes it (usually due to low memory for foreground tasks).
