@@ -86,6 +86,24 @@ namespace Unity.Networking
             return UnityBackgroundDownloadGetProgress(_backend);
         }
 
+        protected override long GetTotal()
+        {
+            if (_backend == IntPtr.Zero)
+                return 1;
+            if (_status != BackgroundDownloadStatus.Downloading)
+                return 1;
+            return UnityBackgroundDownloadGetTotal(_backend);
+        }
+
+        protected override long GetDownloaded()
+        {
+            if (_backend == IntPtr.Zero)
+                return 1;
+            if (_status != BackgroundDownloadStatus.Downloading)
+                return 1;
+            return UnityBackgroundDownloadGetDownloaded(_backend);
+        }
+
         public override void Dispose()
         {
             if (_backend != IntPtr.Zero)
@@ -133,6 +151,12 @@ namespace Unity.Networking
 
         [DllImport("__Internal")]
         static extern float UnityBackgroundDownloadGetProgress(IntPtr backend);
+
+        [DllImport("__Internal")]
+        static extern long UnityBackgroundDownloadGetDownloaded(IntPtr backend);
+
+        [DllImport("__Internal")]
+        static extern long UnityBackgroundDownloadGetTotal(IntPtr backend);
 
         [DllImport("__Internal")]
         static extern void UnityBackgroundDownloadDestroy(IntPtr backend);

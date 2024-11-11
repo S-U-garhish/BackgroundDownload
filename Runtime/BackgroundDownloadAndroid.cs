@@ -55,7 +55,7 @@ namespace Unity.Networking
             : base(config)
         {
             SetupBackendStatics();
-            string filePath = Path.Combine(Application.persistentDataPath, config.filePath);
+            string filePath = config.filePath;
             _tempFilePath = filePath + TEMP_FILE_SUFFIX;
             if (File.Exists(filePath))
                 File.Delete(filePath);
@@ -130,6 +130,7 @@ namespace Unity.Networking
         string QueryDestinationPath(out string tempFilePath)
         {
             string uri = _download.Call<string>("getDestinationUri");
+            return uri;
             string basePath = Application.persistentDataPath;
             var pos = uri.IndexOf(basePath);
             tempFilePath = uri.Substring(pos);
@@ -190,6 +191,16 @@ namespace Unity.Networking
         protected override float GetProgress()
         {
             return _download.Call<float>("getProgress");
+        }
+
+        protected override long GetTotal()
+        {
+            return _download.Call<long>("getTotal");
+        }
+
+        protected override long GetDownloaded()
+        {
+            return _download.Call<long>("getDownloaded");
         }
 
         public override void Dispose()

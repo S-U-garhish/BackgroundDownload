@@ -315,6 +315,30 @@ extern "C" float UnityBackgroundDownloadGetProgress(void* download)
     return -1.0f;
 }
 
+extern "C" long UnityBackgroundDownloadGetDownloaded(void* download)
+{
+    if (UnityBackgroundDownloadGetStatus(download) != kStatusDownloading)
+        return 1;
+    if (UnityiOS111orNewer())
+    {
+        NSURLSessionDownloadTask* task = (__bridge NSURLSessionDownloadTask*)download;
+        return (float)task.progress.countOfBytesReceived;
+    }
+    return -1;
+}
+
+extern "C" long UnityBackgroundDownloadGetTotal(void* download)
+{
+    if (UnityBackgroundDownloadGetStatus(download) != kStatusDownloading)
+        return 1;
+    if (UnityiOS111orNewer())
+    {
+        NSURLSessionDownloadTask* task = (__bridge NSURLSessionDownloadTask*)download;
+        return (float)task.progress.countOfBytesExpectedToReceive;
+    }
+    return -1;
+}
+
 extern "C" int32_t UnityBackgroundDownloadGetError(void* download, void* buffer)
 {
     NSURLSession* session = UnityBackgroundDownloadSession();

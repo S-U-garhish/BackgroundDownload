@@ -153,6 +153,16 @@ namespace Unity.Networking
             return 0.0f;
         }
 
+        protected override long GetTotal()
+        {
+            return 1;
+        }
+
+        protected override long GetDownloaded()
+        {
+            return 1;
+        }
+
 #if ENABLE_WINMD_SUPPORT
         public override void Dispose()
         {
