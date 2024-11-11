@@ -17,6 +17,17 @@ namespace Unity.Networking
 
         protected override float GetProgress() { return 1.0f; }
 
+        protected override long GetTotal()
+        {
+            return 1;
+        }
+
+        protected override long GetDownloaded()
+        {
+            return 1;
+        }
+
+
         internal static Dictionary<string, BackgroundDownload> LoadDownloads()
         {
             return new Dictionary<string, BackgroundDownload>();
