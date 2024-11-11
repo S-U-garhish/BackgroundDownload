@@ -125,7 +125,21 @@ public class BackgroundDownload {
 
     public long getDownloaded()
     {
+        if (error != null)
+            return 1;
+        Uri uri = manager.getUriForDownloadedFile(id);
+        if (uri != null)
+            return 1;
+        DownloadManager.Query query = new DownloadManager.Query();
+        query.setFilterById(id);
+        Cursor cursor = manager.query(query);
+        if (cursor.getCount() == 0) {
+            error = "Background download not found";
+            return 1;
+        }
+        cursor.moveToFirst();
         long downloaded = cursor.getLong(cursor.getColumnIndex(DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR));
+        cursor.close();
         if(downloaded <= 0)
         {
             return 0;
@@ -135,7 +149,21 @@ public class BackgroundDownload {
 
     public long getTotal()
     {
+        if (error != null)
+            return 1;
+        Uri uri = manager.getUriForDownloadedFile(id);
+        if (uri != null)
+            return 1;
+        DownloadManager.Query query = new DownloadManager.Query();
+        query.setFilterById(id);
+        Cursor cursor = manager.query(query);
+        if (cursor.getCount() == 0) {
+            error = "Background download not found";
+            return 1;
+        }
+        cursor.moveToFirst();
         long total = cursor.getLong(cursor.getColumnIndex(DownloadManager.COLUMN_TOTAL_SIZE_BYTES));
+        cursor.close();
         if (total <= 0)
             return -1;
         return total;
