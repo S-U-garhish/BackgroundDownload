@@ -130,22 +130,21 @@ namespace Unity.Networking
         string QueryDestinationPath(out string tempFilePath)
         {
             string uri = _download.Call<string>("getDestinationUri");
-            tempFilePath = uri;
-            //string basePath = Application.persistentDataPath;
-            //var pos = uri.IndexOf(basePath);
-            //tempFilePath = uri.Substring(pos);
-            //pos += basePath.Length;
-            //if (uri[pos] == '/')
-            //    ++pos;
+            string basePath = Application.persistentDataPath;
+            var pos = uri.IndexOf(basePath);
+            tempFilePath = uri.Substring(pos);
+            pos += basePath.Length;
+            if (uri[pos] == '/')
+                ++pos;
             var suffixPos = uri.LastIndexOf(TEMP_FILE_SUFFIX);
             if (suffixPos > 0)
             {
                 var length = suffixPos;
-                //length -= pos;
-                return uri.Substring(0, length);
+                length -= pos;
+                return uri.Substring(pos, length);
             }
 
-            return uri;
+            return uri.Substring(pos);
         }
 
         string GetError()
