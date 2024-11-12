@@ -65,6 +65,12 @@ namespace Unity.Networking
         public Dictionary<string, List<string>> requestHeaders;
 
         /// <summary>
+        /// persistentDataPath以外の場所にも保存したいので、filePath以外の検索用Idを保持しておく。
+        /// つまりファイルパスの制御は呼び出し側でやる。
+        /// </summary>
+        public string Id;
+
+        /// <summary>
         /// A convenience helper to add a single HTTP header to requestHeaders. Fills the value list if called again with the same header name.
         /// </summary>
         /// <param name="name">HTTP header name.</param>
@@ -164,6 +170,7 @@ namespace Unity.Networking
             var config = new BackgroundDownloadConfig();
             config.url = url;
             config.filePath = filePath;
+            config.Id = filePath;
             return Start(config);
         }
 
