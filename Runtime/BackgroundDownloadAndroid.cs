@@ -55,7 +55,8 @@ namespace Unity.Networking
             : base(config)
         {
             SetupBackendStatics();
-            string filePath = config.filePath;
+            Debug.Log("[BackGroundDownloadAndroid]constructor");
+            string filePath = Path.Combine(Application.persistentDataPath, config.filePath);
             _tempFilePath = filePath + TEMP_FILE_SUFFIX;
             if (File.Exists(filePath))
                 File.Delete(filePath);
