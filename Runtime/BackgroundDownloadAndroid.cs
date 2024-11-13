@@ -326,6 +326,15 @@ namespace Unity.Networking
             else if (File.Exists(file))
                 File.Delete(file);
         }
+        protected override long GetTotal()
+        {
+            return _download.Call<long>("getTotal");
+        }
+
+        protected override long GetDownloaded()
+        {
+            return _download.Call<long>("getDownloaded");
+        }
     }
 }
 #endif
