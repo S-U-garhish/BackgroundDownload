@@ -34,11 +34,27 @@ public class BackgroundDownload {
     private String error;
 
     private BackgroundDownload(Uri url, Uri dest) {
-        downloadUri = url;
         destinationUri = dest;
-        request = new DownloadManager.Request(url);
-        request.setDestinationUri(dest);
-        request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_HIDDEN);
+        OkHttpClient client = new OkHttpClient();
+        Request request = new Request.Builder().url(url).head().build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onResponse(com.squareup.okhttp.Call call, com.squareup.okhttp.Response response) throws IOException {
+                //redirectedURLの値を入れたい
+                downloadUri = Uri.parse(response.request().url().toString());
+
+                request = new DownloadManager.Request(downloadUri);
+                request.setDestinationUri(destinationUri);
+                request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_HIDDEN);
+            }
+
+            @Override
+            public void onFailure(com.squareup.okhttp.Call call, IOException e) {
+                e.printStackTrace();
+            }
+        });
+
     }
 
     private BackgroundDownload(DownloadManager manager, long id, Uri url, Uri dest)
