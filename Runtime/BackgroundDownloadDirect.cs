@@ -100,5 +100,14 @@ namespace Unity.Networking
             m_Cts = null;
             base.Dispose();
         }
+        protected override long GetTotal()
+        {
+            return 1;
+        }
+
+        protected override long GetDownloaded()
+        {
+            return 1;
+        }
     }
 }

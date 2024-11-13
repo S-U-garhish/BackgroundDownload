@@ -215,15 +215,6 @@ namespace Unity.Networking
                 idx++;
             return absPath.Substring(idx);
         }
-        protected override long GetTotal()
-        {
-            return 1;
-        }
-
-        protected override long GetDownloaded()
-        {
-            return 1;
-        }
 #endif
     }
 }
