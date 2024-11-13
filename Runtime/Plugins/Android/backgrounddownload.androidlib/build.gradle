@@ -9,7 +9,3 @@ android {
         targetSdkVersion 32
     }
 }
-
-dependencies{
-        implementation 'com.squareup.okhttp:okhttp:4.12.0'
-}
