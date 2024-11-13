@@ -4,13 +4,15 @@ using System.Collections.Generic;
 using UnityEngine;
 
 #if UNITY_EDITOR
-using BackgroundDownloadimpl = Unity.Networking.BackgroundDownloadEditor;
+using BackgroundDownloadimpl = Unity.Networking.BackgroundDownloadDirect;
 #elif UNITY_ANDROID
 using BackgroundDownloadimpl = Unity.Networking.BackgroundDownloadAndroid;
 #elif UNITY_IOS
 using BackgroundDownloadimpl = Unity.Networking.BackgroundDownloadiOS;
 #elif UNITY_WSA_10_0
 using BackgroundDownloadimpl = Unity.Networking.BackgroundDownloadUWP;
+#else
+using BackgroundDownloadimpl = Unity.Networking.BackgroundDownloadDirect;
 #endif
 
 namespace Unity.Networking
